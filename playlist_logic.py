@@ -160,24 +160,18 @@ def most_common_artist(songs: List[Song]) -> Tuple[str, int]:
 def search_songs(
     songs: List[Song],
     query: str,
-    field: str = "artist",
 ) -> List[Song]:
     """Return songs matching the query in any field (title, artist, genre) (case-insensitive, partial match)."""
     if not query:
         return songs
 
     q = query.lower().strip()
-    filtered: List[Song] = []
-
-    for song in songs:
-        # Check title, artist, and genre for a match
-        title = str(song.get("title", "")).lower()
-        artist = str(song.get("artist", "")).lower()
-        genre = str(song.get("genre", "")).lower()
-        if q in title or q in artist or q in genre:
-            filtered.append(song)
-
-    return filtered
+    return [
+        song for song in songs
+        if q in normalize_title(str(song.get("title", ""))).lower()
+        or q in normalize_artist(str(song.get("artist", "")))
+        or q in normalize_genre(str(song.get("genre", "")))
+    ]
 
 
 def lucky_pick(
