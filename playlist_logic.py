@@ -73,10 +73,13 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     is_hype_keyword = any(k in genre for k in hype_keywords)
     is_chill_keyword = any(k in title for k in chill_keywords)
 
-    if genre == favorite_genre or energy >= hype_min_energy or is_hype_keyword:
+    # Hype: energy >= hype_min_energy OR genre matches favorite OR genre contains hype keyword
+    if (energy >= hype_min_energy) or (genre == favorite_genre) or is_hype_keyword:
         return "Hype"
-    if energy <= chill_max_energy or is_chill_keyword:
+    # Chill: energy <= chill_max_energy OR title contains chill keyword
+    if (energy <= chill_max_energy) or is_chill_keyword:
         return "Chill"
+    # Mixed: everything else
     return "Mixed"
 
 
@@ -116,12 +119,12 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
     chill = playlists.get("Chill", [])
     mixed = playlists.get("Mixed", [])
 
-    total = len(hype)
+    total = len(all_songs)
     hype_ratio = len(hype) / total if total > 0 else 0.0
 
     avg_energy = 0.0
     if all_songs:
-        total_energy = sum(song.get("energy", 0) for song in hype)
+        total_energy = sum(song.get("energy", 0) for song in all_songs)
         avg_energy = total_energy / len(all_songs)
 
     top_artist, top_count = most_common_artist(all_songs)
@@ -159,7 +162,7 @@ def search_songs(
     query: str,
     field: str = "artist",
 ) -> List[Song]:
-    """Return songs matching the query on a given field."""
+    """Return songs matching the query in any field (title, artist, genre) (case-insensitive, partial match)."""
     if not query:
         return songs
 
@@ -167,8 +170,11 @@ def search_songs(
     filtered: List[Song] = []
 
     for song in songs:
-        value = str(song.get(field, "")).lower()
-        if value and value in q:
+        # Check title, artist, and genre for a match
+        title = str(song.get("title", "")).lower()
+        artist = str(song.get("artist", "")).lower()
+        genre = str(song.get("genre", "")).lower()
+        if q in title or q in artist or q in genre:
             filtered.append(song)
 
     return filtered
@@ -184,7 +190,7 @@ def lucky_pick(
     elif mode == "chill":
         songs = playlists.get("Chill", [])
     else:
-        songs = playlists.get("Hype", []) + playlists.get("Chill", [])
+        songs = playlists.get("Hype", []) + playlists.get("Chill", []) + playlists.get("Mixed", [])
 
     return random_choice_or_none(songs)
 
